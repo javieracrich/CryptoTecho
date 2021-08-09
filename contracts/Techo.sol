@@ -14,6 +14,9 @@ contract Techo is Ownable {
 
     string activationFailed = "contract activation failed";
     string alreadyActive = "contract is already active";
+    string minContractDuration = "Required minimum contract duration is 1 week";
+    string contractDurationLargerThanFrequency =
+        "Payment frequency should be less than the contract duration";
 
     uint256 public contractDaiAmount;
     uint256 public activationTime;
@@ -30,11 +33,14 @@ contract Techo is Ownable {
         address _daiaddress,
         uint256 _contractSecondsDuration,
         uint256 _contractDaiAmount,
-        uint256 _paySecondsFrequency
+        uint256 _paySecondsFrequency,
+        uint8 _commissionPercentage
     ) {
+        require(_contractSecondsDuration >= 604800, minContractDuration);
+
         require(
-            _contractSecondsDuration >= 604800,
-            "Required minimum contract duration is 1 week"
+            _contractSecondsDuration > _paySecondsFrequency,
+            contractDurationLargerThanFrequency
         );
 
         daiInstance = IERC20(_daiaddress);
@@ -42,9 +48,9 @@ contract Techo is Ownable {
         landlord = 0x2f9C819348F8C5cA2642f40a8C32a7d0b0158AA0; // cuenta 3 // _landlord;
         contractStatus = ContractStatus.NOTACTIVE;
         contractDaiAmount = _contractDaiAmount;
-        contractSecondsDuration = _contractSecondsDuration; // 31556952; // _contractDuration; //31556952 seconds in a year
-        commissionPercentage = 1; //1 percent  // _commissionPercentage;
-        paySecondsFrequency =  _paySecondsFrequency;
+        contractSecondsDuration = _contractSecondsDuration;
+        commissionPercentage = _commissionPercentage;
+        paySecondsFrequency = _paySecondsFrequency;
         amountToPayByFrequency =
             contractDaiAmount /
             (contractSecondsDuration / paySecondsFrequency);
@@ -52,6 +58,10 @@ contract Techo is Ownable {
 
     function getContractStatus() public view returns (uint256) {
         return uint256(contractStatus);
+    }
+
+    function calculateCommission() public view returns (uint256) {
+        return (contractDaiAmount / 100) * commissionPercentage;
     }
 
     function activate(uint256 daiAmount) external payable _tenantOnly {
@@ -66,11 +76,7 @@ contract Techo is Ownable {
         require(success, activationFailed);
         contractStatus = ContractStatus.ACTIVE;
         activationTime = block.timestamp;
-
         finalizationTime = block.timestamp + contractSecondsDuration;
-
-        //   totalSupply = totalSupply.add(xxxAmount);
-        // balances[msg.sender] = balances[msg.sender].add(xxxAmount);
     }
 
     function checkDaiBalance() public view returns (uint256) {
@@ -84,7 +90,7 @@ contract Techo is Ownable {
     function collectRent() public _landlordOnly {
         require(
             (lastPayTime + paySecondsFrequency) > (block.timestamp),
-            "you have already collected rent"
+            "you have already collected rent this current cycle"
         );
 
         lastPayTime = block.timestamp;
