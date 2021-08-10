@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-waffle";
-import { task } from "hardhat/config";
+import { HardhatUserConfig, task } from "hardhat/config";
+import "solidity-coverage";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -10,6 +11,13 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     console.log(account.address);
   }
 });
+
+const config: HardhatUserConfig = {
+  // Your type-safe config goes here
+  
+};
+
+export default config;
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more

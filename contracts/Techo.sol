@@ -27,10 +27,10 @@ contract Techo is Ownable {
     uint256 public lastPayTime;
     uint256 public amountToPayByFrequency;
 
-    //    console.log("Deploying a Greeter with greeting:", _greeting);
-
     constructor(
         address _daiaddress,
+        address _tenant,
+        address _landlord,
         uint256 _contractSecondsDuration,
         uint256 _contractDaiAmount,
         uint256 _paySecondsFrequency,
@@ -44,8 +44,8 @@ contract Techo is Ownable {
         );
 
         daiInstance = IERC20(_daiaddress);
-        tenant = 0x7E2406479657Bda15731CAd59d16242eED3D5082; //  _tenant;
-        landlord = 0x2f9C819348F8C5cA2642f40a8C32a7d0b0158AA0; // cuenta 3 // _landlord;
+        tenant = _tenant;
+        landlord = _landlord;
         contractStatus = ContractStatus.NOTACTIVE;
         contractDaiAmount = _contractDaiAmount;
         contractSecondsDuration = _contractSecondsDuration;
@@ -54,10 +54,6 @@ contract Techo is Ownable {
         amountToPayByFrequency =
             contractDaiAmount /
             (contractSecondsDuration / paySecondsFrequency);
-    }
-
-    function getContractStatus() public view returns (uint256) {
-        return uint256(contractStatus);
     }
 
     function calculateCommission() public view returns (uint256) {
@@ -77,6 +73,8 @@ contract Techo is Ownable {
         contractStatus = ContractStatus.ACTIVE;
         activationTime = block.timestamp;
         finalizationTime = block.timestamp + contractSecondsDuration;
+        uint256 commission = getCancellationCommission();
+        daiInstance.transferFrom(address(this), owner(), commission);
     }
 
     function checkDaiBalance() public view returns (uint256) {
@@ -100,16 +98,14 @@ contract Techo is Ownable {
     function cancelContract() public onlyOwner {
         require(contractStatus == ContractStatus.ACTIVE);
         contractStatus = ContractStatus.CANCELLED;
-
-        uint256 remaining = getCancellationCommission();
-
-        daiInstance.transferFrom(address(this), tenant, remaining);
+        uint256 balance = checkDaiBalance();
+        daiInstance.transferFrom(address(this), owner(), balance);
     }
 
     function getCancellationCommission() private view returns (uint256) {
         uint256 balance = checkDaiBalance();
-        uint256 remaining = (balance * commissionPercentage) / 10000;
-        return remaining;
+        uint256 commission = (balance * commissionPercentage) / 10000;
+        return commission;
     }
 
     function extract() public onlyOwner {

@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts\Techo.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> Techo.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">31.58% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>12/38</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">16.67% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>3/18</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">16.67% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>2/12</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">30% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>12/40</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">//SPDX-License-Identifier: Unlicense
+pragma solidity ^0.8.0;
+&nbsp;
+import "hardhat/console.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Enums.sol";
+&nbsp;
+contract Techo is Ownable {
+    IERC20 daiInstance;
+    ContractStatus public contractStatus;
+    address public landlord;
+    address public tenant;
+&nbsp;
+    string activationFailed = "contract activation failed";
+    string alreadyActive = "contract is already active";
+    string minContractDuration = "Required minimum contract duration is 1 week";
+    string contractDurationLargerThanFrequency =
+        "Payment frequency should be less than the contract duration";
+&nbsp;
+    uint256 public contractDaiAmount;
+    uint256 public activationTime;
+    uint256 public finalizationTime;
+    uint256 public contractSecondsDuration;
+    uint256 public commissionPercentage;
+    uint256 public paySecondsFrequency;
+    uint256 public lastPayTime;
+    uint256 public amountToPayByFrequency;
+&nbsp;
+    constructor(
+        address _daiaddress,
+        uint256 _contractSecondsDuration,
+        uint256 _contractDaiAmount,
+        uint256 _paySecondsFrequency,
+        uint8 _commissionPercentage
+    ) {
+        require(_contractSecondsDuration &gt;= 604800, minContractDuration);
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(
+            _contractSecondsDuration &gt; _paySecondsFrequency,
+            contractDurationLargerThanFrequency
+        );
+&nbsp;
+        daiInstance = IERC20(_daiaddress);
+        tenant = 0x7E2406479657Bda15731CAd59d16242eED3D5082; //  _tenant;
+        landlord = 0x2f9C819348F8C5cA2642f40a8C32a7d0b0158AA0; // cuenta 3 // _landlord;
+        contractStatus = ContractStatus.NOTACTIVE;
+        contractDaiAmount = _contractDaiAmount;
+        contractSecondsDuration = _contractSecondsDuration;
+        commissionPercentage = _commissionPercentage;
+        paySecondsFrequency = _paySecondsFrequency;
+        amountToPayByFrequency =
+            contractDaiAmount /
+            (contractSecondsDuration / paySecondsFrequency);
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getContractStatus() public view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        return uint256(contractStatus);</span>
+    }
+&nbsp;
+    function calculateCommission() public view returns (uint256) {
+        return (contractDaiAmount / 100) * commissionPercentage;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function activate(uint256 daiAmount) external payable _tenantOnly {</span>
+<span class="cstat-no" title="statement not covered" >        require(daiAmount == contractDaiAmount, activationFailed)</span>;
+<span class="cstat-no" title="statement not covered" >        require(contractStatus == ContractStatus.NOTACTIVE, alreadyActive)</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        bool success = daiInstance.transferFrom(</span>
+            msg.sender,
+            address(this),
+            daiAmount
+        );
+<span class="cstat-no" title="statement not covered" >        require(success, activationFailed)</span>;
+<span class="cstat-no" title="statement not covered" >        contractStatus = ContractStatus.ACTIVE</span>;
+<span class="cstat-no" title="statement not covered" >        activationTime = block.timestamp</span>;
+<span class="cstat-no" title="statement not covered" >        finalizationTime = block.timestamp + contractSecondsDuration</span>;
+<span class="cstat-no" title="statement not covered" >        uint256 commission = getCancellationCommission();</span>
+<span class="cstat-no" title="statement not covered" >        daiInstance.transferFrom(address(this), owner(), commission)</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function checkDaiBalance() public view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        return daiInstance.balanceOf(address(this));</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function checkRemainingDuration() public view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        return finalizationTime - (activationTime + block.timestamp);</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function collectRent() public _landlordOnly {</span>
+<span class="cstat-no" title="statement not covered" >        require(</span>
+            (lastPayTime + paySecondsFrequency) &gt; (block.timestamp),
+            "you have already collected rent this current cycle"
+        );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        lastPayTime = block.timestamp</span>;
+<span class="cstat-no" title="statement not covered" >        daiInstance.transfer(address(this), amountToPayByFrequency)</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function cancelContract() public onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        require(contractStatus == ContractStatus.ACTIVE)</span>;
+<span class="cstat-no" title="statement not covered" >        contractStatus = ContractStatus.CANCELLED</span>;
+<span class="cstat-no" title="statement not covered" >        uint256 balance = checkDaiBalance();</span>
+<span class="cstat-no" title="statement not covered" >        daiInstance.transferFrom(address(this), owner(), balance)</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getCancellationCommission() private view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        uint256 balance = checkDaiBalance();</span>
+<span class="cstat-no" title="statement not covered" >        uint256 commission = (balance * commissionPercentage) / 10000;</span>
+<span class="cstat-no" title="statement not covered" >        return commission;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function extract() public onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        uint256 balance = checkDaiBalance();</span>
+<span class="cstat-no" title="statement not covered" >        daiInstance.transferFrom(address(this), owner(), balance)</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    modifier _tenantOnly() {</span>
+<span class="cstat-no" title="statement not covered" >        require(msg.sender == tenant)</span>;
+        _;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    modifier _landlordOnly() {</span>
+<span class="cstat-no" title="statement not covered" >        require(msg.sender == landlord)</span>;
+        _;
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Mon Aug 09 2021 22:48:58 GMT-0300 (Argentina Standard Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
