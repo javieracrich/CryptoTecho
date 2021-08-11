@@ -1,22 +1,49 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Constants, ContractStatus } from "./Constants";
-import { Signer, utils } from "ethers";
+import { BigNumber, Contract, Signer, utils } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-async function getContract(duration: number, daiAmount: string, frequency: number, commission: number, signer: Signer): Promise<any> {
-  const MockDai = await ethers.getContractFactory("MockDai");
-  var mockDai = await MockDai.deploy();
-  await mockDai.deployed();
-  const Techo = await ethers.getContractFactory("Techo", signer);
+async function getContracts(
+  duration: number,
+  amount: BigNumber,
+  frequency: number,
+  commission: number,
+  signer: Signer
+): Promise<[Contract, Contract]> {
   var [owner, tenant, landlord] = await ethers.getSigners();
-  const techo = Techo.deploy(mockDai.address, tenant.address, landlord.address, duration, daiAmount, frequency, commission);
-  return techo;
+  const MockDai = await ethers.getContractFactory("MockDai");
+  const dai = await MockDai.deploy();
+  await dai.deployed();
+  console.log("owner  is:", owner.address);
+  console.log("owner has:", utils.formatEther(await dai.balanceOf(owner.address)));
+  console.log("transfering 5000 dai from owner to tenant");
+  await dai.transfer(tenant.address, utils.parseEther("5000"));
+
+  console.log("now owner has:", utils.formatEther(await dai.balanceOf(owner.address)));
+  console.log("now tenant has:", utils.formatEther(await dai.balanceOf(tenant.address)));
+  const Techo = await ethers.getContractFactory("Techo", signer);
+  const techo = await Techo.deploy(dai.address, tenant.address, landlord.address, duration, amount, frequency, commission);
+
+  return [techo, dai];
 }
 
 describe("Techo", function () {
+  let owner: SignerWithAddress, tenant: SignerWithAddress, landlord: SignerWithAddress;
+  let amount: BigNumber;
+  beforeEach(async () => {
+    [owner, tenant, landlord] = await ethers.getSigners();
+    amount = utils.parseEther("5000");
+  });
+
+  it("both owner and tenant have 5000 DAI each", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 1, owner);
+    await expect(await dai.balanceOf(tenant.address)).to.equal(utils.parseEther("5000"));
+    await expect(await dai.balanceOf(owner.address)).to.equal(utils.parseEther("5000"));
+  });
+
   it("Contract parameters are set", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Year, add18(12), Constants.Month, 1, owner);
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 1, owner);
 
     await expect(techo.daiInstance).to.be.not.null;
     await expect(await techo.contractStatus()).to.equal(ContractStatus.NOTACTIVE);
@@ -28,95 +55,95 @@ describe("Techo", function () {
   });
 
   it("tenant is correct", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Year, add18(12), Constants.Month, 5, owner);
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 5, owner);
     expect(await techo.tenant()).to.equal(tenant.address);
   });
 
   it("landlord is correct", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Year, add18(12), Constants.Month, 5, owner);
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 5, owner);
     expect(await techo.landlord()).to.equal(landlord.address);
   });
 
   it("Contract duration minimum required is 1 week", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    await expect(getContract(Constants.Week - 1, add18(12), Constants.Month, 1, owner)).to.be.revertedWith(
+    await expect(getContracts(Constants.Week - 1, amount, Constants.Month, 1, owner)).to.be.revertedWith(
       "Required minimum contract duration is 1 week"
     );
   });
 
   it("Contract status is NOTACTIVE after deployed", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Year, add18(12), Constants.Month, 5, owner);
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 5, owner);
     expect(await techo.contractStatus()).to.equal(ContractStatus.NOTACTIVE);
   });
 
   it("AmountToPayByFrequency is correct - YEAR CONTRACT", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Year, add18(24), Constants.Month, 1, owner);
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 1, owner);
     const amountToPay = await techo.amountToPayByFrequency();
-    var amount = utils.formatEther(amountToPay);
-    expect(amount).to.equal("1.846153846153846153");
+    var formatted = utils.formatEther(amountToPay);
+    expect(formatted).to.equal("416.666666666666666666");
   });
 
   it("AmountToPayByFrequency is correct - MONTH CONTRACT", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Month, add18(4), Constants.Week, 1, owner);
+    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 1, owner);
     const amountToPay = await techo.amountToPayByFrequency();
-    var amount = utils.formatEther(amountToPay);
-    expect(amount).to.equal("1.0");
+    var formatted = utils.formatEther(amountToPay);
+    expect(formatted).to.equal("1250.0");
   });
 
   it("Calculate 1% commission", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Month, add18(4), Constants.Week, 1, owner);
+    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 1, owner);
     const commission = await techo.calculateCommission();
     var formattedCommission = utils.formatEther(commission);
-    expect(formattedCommission).to.be.equal("0.04");
+    expect(formattedCommission).to.equal("50.0");
   });
 
   it("Calculate 5% commission", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Month, add18(7), Constants.Week, 5, owner);
+    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 5, owner);
     const commission = await techo.calculateCommission();
     var formattedCommission = utils.formatEther(commission);
-    expect(formattedCommission).to.be.equal("0.35");
+    expect(formattedCommission).to.be.equal("250.0");
   });
 
   it("Calculate 10% commission ", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Month, add18(5), Constants.Week, 10, owner);
+    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 10, owner);
     const commission = await techo.calculateCommission();
     var formattedCommission = utils.formatEther(commission);
-    expect(formattedCommission).to.be.equal("0.5");
+    expect(formattedCommission).to.equal("500.0");
   });
 
   it("Calculate 50% commission ", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    var techo = await getContract(Constants.Month, add18(5), Constants.Week, 50, owner);
+    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 50, owner);
     const commission = await techo.calculateCommission();
     var formattedCommission = utils.formatEther(commission);
-    expect(formattedCommission).to.be.equal("2.5");
+    expect(formattedCommission).to.equal("2500.0");
   });
 
   it("Contract duration is larger than frequency", async function () {
-    var [owner, tenant, landlord] = await ethers.getSigners();
-    expect(getContract(Constants.Week, add18(5), Constants.Month, 5, owner)).to.be.revertedWith(
+    expect(getContracts(Constants.Week, amount, Constants.Month, 5, owner)).to.be.revertedWith(
       "Payment frequency should be less than the contract duration"
     );
   });
-  it("Contract is activated", async function () {
-    //     var [owner, tenant, landlord] = await ethers.getSigners();
-    //     var techo = await getContract(Constants.Year, add18(12), Constants.Month, 2, tenant);
-    //  //   const [owner, tenant, landlord] = await ethers.getSigners();
-    //     tenant.connect();
-    //     tenant.sendTransaction;
-    //     const tx = await techo.activate(add18(12));
-    //     await tx.wait();
+  it("Contract is activated - happy path", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    await tenantDai.approve(techo.address, amount);
+    await tenantTecho.activate(amount);
+    await expect(await techo.contractStatus()).to.equal(ContractStatus.ACTIVE);
+    const start = (await techo.activationTime()).toString();
+    const finish = (await techo.finalizationTime()).toString();
+    await expect(await techo.activationTime()).to.be.not.null;
+    await expect(finish).to.be.not.null;
+    await expect(start).to.be.not.null;
+    await expect(finish > start).to.be.true;
   });
-});
 
-function add18(number: Number): string {
-  return utils.parseEther(number + "").toString();
-}
+  it("Transferring less than required to activate should fail", async function () {});
+
+  it("Transferring more than required to activate should fail", async function () {});
+
+  it("Activating already activated contract should fail", async function () {});
+
+  it("Cancel contract-happy path", async function () {});
+
+  it("Cancel not active contract should fail ", async function () {});
+});

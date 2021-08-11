@@ -3,10 +3,13 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Enums.sol";
 
 contract Techo is Ownable {
+    using Strings for uint256;
+
     IERC20 daiInstance;
     ContractStatus public contractStatus;
     address public landlord;
@@ -17,6 +20,7 @@ contract Techo is Ownable {
     string minContractDuration = "Required minimum contract duration is 1 week";
     string contractDurationLargerThanFrequency =
         "Payment frequency should be less than the contract duration";
+    string collectedRent = "you have already collected rent this current cycle";
 
     uint256 public contractDaiAmount;
     uint256 public activationTime;
@@ -60,21 +64,31 @@ contract Techo is Ownable {
         return (contractDaiAmount / 100) * commissionPercentage;
     }
 
-    function activate(uint256 daiAmount) external payable _tenantOnly {
-        require(daiAmount == contractDaiAmount, activationFailed);
+    function assignDaiContract(IERC20 dai) public {
+        daiInstance = dai;
+    }
+
+    function approve(uint256 amount) public returns (bool) {
+        return daiInstance.approve(address(this), amount);
+    }
+
+    function allowance() public view returns (uint256) {
+        return daiInstance.allowance(tenant, address(this));
+    }
+
+    function activate(uint256 amount) external payable _tenantOnly {
+        require(amount == contractDaiAmount, activationFailed);
         require(contractStatus == ContractStatus.NOTACTIVE, alreadyActive);
 
         bool success = daiInstance.transferFrom(
             msg.sender,
             address(this),
-            daiAmount
+            amount
         );
         require(success, activationFailed);
         contractStatus = ContractStatus.ACTIVE;
         activationTime = block.timestamp;
         finalizationTime = block.timestamp + contractSecondsDuration;
-        uint256 commission = getCancellationCommission();
-        daiInstance.transferFrom(address(this), owner(), commission);
     }
 
     function checkDaiBalance() public view returns (uint256) {
@@ -88,7 +102,7 @@ contract Techo is Ownable {
     function collectRent() public _landlordOnly {
         require(
             (lastPayTime + paySecondsFrequency) > (block.timestamp),
-            "you have already collected rent this current cycle"
+            collectedRent
         );
 
         lastPayTime = block.timestamp;
@@ -99,14 +113,14 @@ contract Techo is Ownable {
         require(contractStatus == ContractStatus.ACTIVE);
         contractStatus = ContractStatus.CANCELLED;
         uint256 balance = checkDaiBalance();
-        daiInstance.transferFrom(address(this), owner(), balance);
+        daiInstance.transferFrom(address(this), tenant, balance);
     }
 
-    function getCancellationCommission() private view returns (uint256) {
-        uint256 balance = checkDaiBalance();
-        uint256 commission = (balance * commissionPercentage) / 10000;
-        return commission;
-    }
+    // function getCancellationCommission() private view returns (uint256) {
+    //     uint256 balance = checkDaiBalance();
+    //     uint256 commission = (balance * commissionPercentage) / 10000;
+    //     return commission;
+    // }
 
     function extract() public onlyOwner {
         uint256 balance = checkDaiBalance();
@@ -114,12 +128,12 @@ contract Techo is Ownable {
     }
 
     modifier _tenantOnly() {
-        require(msg.sender == tenant);
+        require(msg.sender == tenant, "only tenant can call this function");
         _;
     }
 
     modifier _landlordOnly() {
-        require(msg.sender == landlord);
+        require(msg.sender == landlord, "only landlord can call this function");
         _;
     }
 }
