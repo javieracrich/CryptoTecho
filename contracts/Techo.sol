@@ -7,10 +7,17 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Enums.sol";
 
+struct Cycle {
+    uint8 index;
+    uint256 start;
+    uint256 finish;
+    bool paid;
+}
+
 contract Techo is Ownable {
     using Strings for uint256;
 
-    IERC20 daiInstance;
+    IERC20 dai;
     ContractStatus public contractStatus;
     address public landlord;
     address public tenant;
@@ -25,14 +32,15 @@ contract Techo is Ownable {
     string onlyTenant = "only tenant can call this function";
     string onlyLandlord = "only landlord can call this function";
 
-    uint256 public contractDaiAmount;
+    uint256 public contractAmount;
     uint256 public activationTime;
     uint256 public finalizationTime;
-    uint256 public contractSecondsDuration;
-    uint256 public commissionPercentage;
-    uint256 public paySecondsFrequency;
-    uint256 public lastPayTime;
+    uint256 public contractDuration;
+    uint256 public ownerFee;
+    uint256 public frequency;
     uint256 public amountToPayByFrequency;
+    mapping(uint8 => Cycle) cycleMapping;
+    Cycle[] cycleArray;
 
     event Activated(
         address indexed _tenant,
@@ -47,52 +55,66 @@ contract Techo is Ownable {
         address _daiaddress,
         address _tenant,
         address _landlord,
-        uint256 _contractSecondsDuration,
-        uint256 _contractDaiAmount,
-        uint256 _paySecondsFrequency,
-        uint8 _commissionPercentage
+        uint256 _contractDuration,
+        uint256 _contractAmount,
+        uint256 _frequency,
+        uint8 _ownerFee
     ) {
-        require(_contractSecondsDuration >= 604800, minContractDuration);
+        require(_contractDuration >= 604800, minContractDuration);
 
         require(
-            _contractSecondsDuration > _paySecondsFrequency,
+            _contractDuration > _frequency,
             contractDurationLargerThanFrequency
         );
 
-        daiInstance = IERC20(_daiaddress);
+        dai = IERC20(_daiaddress);
         tenant = _tenant;
         landlord = _landlord;
         contractStatus = ContractStatus.NOTACTIVE;
-        contractDaiAmount = _contractDaiAmount;
-        contractSecondsDuration = _contractSecondsDuration;
-        commissionPercentage = _commissionPercentage;
-        paySecondsFrequency = _paySecondsFrequency;
+        contractAmount = _contractAmount;
+        contractDuration = _contractDuration;
+        ownerFee = _ownerFee;
+        frequency = _frequency;
+
+        uint256 feeAmount = getOwnerFeeAmount();
+
         amountToPayByFrequency =
-            contractDaiAmount /
-            (contractSecondsDuration / paySecondsFrequency);
+            (contractAmount - feeAmount) /
+            (contractDuration / frequency);
+
+        uint256 cycleCount = contractDuration / frequency;
+        uint256 prevStart = block.timestamp;
+        uint256 prevFinish = block.timestamp + frequency;
+
+        cycleArray.push(Cycle(0, prevStart, prevFinish, false));
+
+        for (uint8 i = 1; cycleCount > i; i++) {
+            uint256 start = prevFinish;
+            uint256 finish = start + frequency;
+            cycleArray.push(Cycle(i, start, finish, false));
+            cycleMapping[i] = Cycle(i, start, finish, false);
+            prevStart = start;
+            prevFinish = finish;
+        }
     }
 
-    function calculateCommission() public view returns (uint256) {
-        return (contractDaiAmount / 100) * commissionPercentage;
-    }
-
-    function assignDaiContract(IERC20 dai) public {
-        daiInstance = dai;
+    function getOwnerFeeAmount() public view returns (uint256) {
+        return (contractAmount / 100) * ownerFee;
     }
 
     function approve(uint256 amount) public returns (bool) {
-        return daiInstance.approve(address(this), amount);
+        return dai.approve(address(this), amount);
     }
 
     function allowance() public view returns (uint256) {
-        return daiInstance.allowance(tenant, address(this));
+        return dai.allowance(tenant, address(this));
     }
 
     function activate(uint256 amount) external payable _tenantOnly {
-        require(amount == contractDaiAmount, activationFailed);
+        require(amount == contractAmount, activationFailed);
         require(contractStatus == ContractStatus.NOTACTIVE, alreadyActive);
 
-        bool success = daiInstance.transferFrom(
+        bool success = dai.transferFrom(
             msg.sender,
             address(this),
             amount
@@ -100,30 +122,31 @@ contract Techo is Ownable {
         require(success, activationFailed);
         contractStatus = ContractStatus.ACTIVE;
         activationTime = block.timestamp;
-        finalizationTime = block.timestamp + contractSecondsDuration;
-        uint256 fee = calculateCommission();
-
-        daiInstance.transfer(owner(), fee);
-
+        finalizationTime = block.timestamp + contractDuration;
+        uint256 fee = getOwnerFeeAmount();
+        dai.transfer(owner(), fee);
         emit Activated(tenant, landlord, amount);
     }
 
     function checkDaiBalance() public view returns (uint256) {
-        return daiInstance.balanceOf(address(this));
+        return dai.balanceOf(address(this));
     }
 
     function checkRemainingDuration() public view returns (uint256) {
         return finalizationTime - (activationTime + block.timestamp);
     }
 
-    function collectRent() public _landlordOnly {
+    function collectRent(uint8 cycleIndex) public _landlordOnly {
+        require(cycleMapping[cycleIndex].paid == false, collectedRent);
         require(
-            (lastPayTime + paySecondsFrequency) > (block.timestamp),
-            collectedRent
+            cycleMapping[cycleIndex].start < block.timestamp &&
+                cycleMapping[cycleIndex].finish < block.timestamp,
+            "Cannot collect from a cycle which is not the current one"
         );
 
-        lastPayTime = block.timestamp;
-        daiInstance.transfer(address(this), amountToPayByFrequency);
+        cycleMapping[cycleIndex].paid = true;
+
+        dai.transfer(landlord, amountToPayByFrequency);
         emit RentCollected(amountToPayByFrequency);
     }
 
@@ -131,13 +154,13 @@ contract Techo is Ownable {
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         contractStatus = ContractStatus.CANCELLED;
         uint256 balance = checkDaiBalance();
-        daiInstance.transfer(tenant, balance);
+        dai.transfer(tenant, balance);
         emit Cancelled();
     }
 
     function extract() public onlyOwner {
         uint256 balance = checkDaiBalance();
-        daiInstance.transferFrom(address(this), owner(), balance);
+        dai.transferFrom(address(this), owner(), balance);
     }
 
     modifier _tenantOnly() {
