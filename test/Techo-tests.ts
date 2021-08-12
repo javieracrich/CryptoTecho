@@ -1,4 +1,5 @@
 import { expect } from "chai";
+
 import { ethers } from "hardhat";
 import { Constants, ContractStatus } from "./Constants";
 import { BigNumber, Contract, Signer, utils } from "ethers";
@@ -127,7 +128,7 @@ describe("Techo", function () {
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     await tenantDai.approve(techo.address, amount);
-    await tenantTecho.activate(amount);
+    await expect(tenantTecho.activate(amount)).to.emit(tenantTecho, "Activated");
     await expect(await techo.contractStatus()).to.equal(ContractStatus.ACTIVE);
     const start = (await techo.activationTime()).toString();
     const finish = (await techo.finalizationTime()).toString();
@@ -135,15 +136,79 @@ describe("Techo", function () {
     await expect(finish).to.be.not.null;
     await expect(start).to.be.not.null;
     await expect(finish > start).to.be.true;
+
+    const ownerBalance = await dai.balanceOf(owner.address);
+    expect(utils.formatEther(ownerBalance)).to.equal("5100.0");
+
+    //expect Activated event emitted;
   });
 
-  it("Transferring less than required to activate should fail", async function () {});
+  it("landlord tries to activate contract - should fail", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var landlordTecho = techo.connect(landlord);
+    var landlordDai = dai.connect(landlord);
+    await landlordDai.approve(techo.address, amount);
+    await expect(landlordTecho.activate(amount)).to.be.revertedWith("only tenant can call this function");
+  });
 
-  it("Transferring more than required to activate should fail", async function () {});
+  it("owner tries to activate contract - should fail", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    await dai.approve(techo.address, amount);
+    await expect(techo.activate(amount)).to.be.revertedWith("only tenant can call this function");
+  });
 
-  it("Activating already activated contract should fail", async function () {});
+  it("Transferring less than required to activate should fail", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    await tenantDai.approve(techo.address, amount);
+    await expect(tenantTecho.activate(utils.parseEther("4000"))).to.be.revertedWith("contract activation failed");
+  });
 
-  it("Cancel contract-happy path", async function () {});
+  it("Transferring more than required to activate should fail", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    await tenantDai.approve(techo.address, amount);
+    await expect(tenantTecho.activate(utils.parseEther("6000"))).to.be.revertedWith("contract activation failed");
+  });
 
-  it("Cancel not active contract should fail ", async function () {});
+  it("Activating already activated contract should fail", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    await tenantDai.approve(techo.address, amount);
+    await tenantTecho.activate(amount);
+    await expect(tenantTecho.activate(amount)).to.be.revertedWith("contract is already active");
+  });
+
+  it("Cancel contract-happy path", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    await tenantDai.approve(techo.address, amount);
+    await tenantTecho.activate(amount);
+    await expect(techo.cancelContract()).to.emit(techo, "Cancelled");
+    await expect(await techo.contractStatus()).to.equal(ContractStatus.CANCELLED);
+  });
+
+  it("Cancel not active contract should fail ", async function () {
+    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    await tenantDai.approve(techo.address, amount);
+    await tenantTecho.activate(amount);
+    await techo.cancelContract();
+    await expect(techo.cancelContract()).to.be.revertedWith("contract is not active");
+  });
+
+  it("Landlord collects 1 rent - happy path ", async function () {});
+
+  it("Landlord collects 6 rents in a 6 month contract - happy path ", async function () {});
+
+  it("Landlord tries to collect rent twice in current cycle should fail ", async function () {});
+
+  it("Landlord tries to collect rent from not active contract should fail ", async function () {});
+
+  it("Landlord tries to collect rent from cancelled contract should fail ", async function () {});
 });

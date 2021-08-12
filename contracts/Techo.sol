@@ -21,6 +21,9 @@ contract Techo is Ownable {
     string contractDurationLargerThanFrequency =
         "Payment frequency should be less than the contract duration";
     string collectedRent = "you have already collected rent this current cycle";
+    string contractNotActive = "contract is not active";
+    string onlyTenant = "only tenant can call this function";
+    string onlyLandlord = "only landlord can call this function";
 
     uint256 public contractDaiAmount;
     uint256 public activationTime;
@@ -30,6 +33,15 @@ contract Techo is Ownable {
     uint256 public paySecondsFrequency;
     uint256 public lastPayTime;
     uint256 public amountToPayByFrequency;
+
+    event Activated(
+        address indexed _tenant,
+        address indexed _landlord,
+        uint256 _amount
+    );
+
+    event RentCollected(uint256 amount);
+    event Cancelled();
 
     constructor(
         address _daiaddress,
@@ -89,6 +101,11 @@ contract Techo is Ownable {
         contractStatus = ContractStatus.ACTIVE;
         activationTime = block.timestamp;
         finalizationTime = block.timestamp + contractSecondsDuration;
+        uint256 fee = calculateCommission();
+
+        daiInstance.transfer(owner(), fee);
+
+        emit Activated(tenant, landlord, amount);
     }
 
     function checkDaiBalance() public view returns (uint256) {
@@ -107,20 +124,16 @@ contract Techo is Ownable {
 
         lastPayTime = block.timestamp;
         daiInstance.transfer(address(this), amountToPayByFrequency);
+        emit RentCollected(amountToPayByFrequency);
     }
 
     function cancelContract() public onlyOwner {
-        require(contractStatus == ContractStatus.ACTIVE);
+        require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         contractStatus = ContractStatus.CANCELLED;
         uint256 balance = checkDaiBalance();
-        daiInstance.transferFrom(address(this), tenant, balance);
+        daiInstance.transfer(tenant, balance);
+        emit Cancelled();
     }
-
-    // function getCancellationCommission() private view returns (uint256) {
-    //     uint256 balance = checkDaiBalance();
-    //     uint256 commission = (balance * commissionPercentage) / 10000;
-    //     return commission;
-    // }
 
     function extract() public onlyOwner {
         uint256 balance = checkDaiBalance();
@@ -128,12 +141,12 @@ contract Techo is Ownable {
     }
 
     modifier _tenantOnly() {
-        require(msg.sender == tenant, "only tenant can call this function");
+        require(msg.sender == tenant, onlyTenant);
         _;
     }
 
     modifier _landlordOnly() {
-        require(msg.sender == landlord, "only landlord can call this function");
+        require(msg.sender == landlord, onlyLandlord);
         _;
     }
 }
