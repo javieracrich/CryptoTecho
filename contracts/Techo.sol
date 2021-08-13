@@ -17,10 +17,13 @@ struct Cycle {
 contract Techo is Ownable {
     using Strings for uint256;
 
-    IERC20 dai;
+    IERC20 erc20;
     ContractStatus public contractStatus;
     address public landlord;
     address public tenant;
+    uint256 public mockTime = 0;
+    uint8 public currentCycle = 0;
+    uint8 public cycleCount = 0;
 
     string activationFailed = "contract activation failed";
     string alreadyActive = "contract is already active";
@@ -31,6 +34,8 @@ contract Techo is Ownable {
     string contractNotActive = "contract is not active";
     string onlyTenant = "only tenant can call this function";
     string onlyLandlord = "only landlord can call this function";
+    string notCurrentCycle =
+        "Cannot collect from a cycle which is not the current one";
 
     uint256 public contractAmount;
     uint256 public activationTime;
@@ -39,7 +44,7 @@ contract Techo is Ownable {
     uint256 public ownerFee;
     uint256 public frequency;
     uint256 public amountToPayByFrequency;
-    mapping(uint8 => Cycle) cycleMapping;
+    mapping(uint8 => Cycle) public cycleMapping;
     Cycle[] cycleArray;
 
     event Activated(
@@ -52,7 +57,7 @@ contract Techo is Ownable {
     event Cancelled();
 
     constructor(
-        address _daiaddress,
+        address _erc20address,
         address _tenant,
         address _landlord,
         uint256 _contractDuration,
@@ -67,7 +72,7 @@ contract Techo is Ownable {
             contractDurationLargerThanFrequency
         );
 
-        dai = IERC20(_daiaddress);
+        erc20 = IERC20(_erc20address);
         tenant = _tenant;
         landlord = _landlord;
         contractStatus = ContractStatus.NOTACTIVE;
@@ -76,19 +81,17 @@ contract Techo is Ownable {
         ownerFee = _ownerFee;
         frequency = _frequency;
 
-        uint256 feeAmount = getOwnerFeeAmount();
-
         amountToPayByFrequency =
-            (contractAmount - feeAmount) /
+            (contractAmount) /
             (contractDuration / frequency);
 
-        uint256 cycleCount = contractDuration / frequency;
+        cycleCount = uint8(contractDuration / frequency);
         uint256 prevStart = block.timestamp;
         uint256 prevFinish = block.timestamp + frequency;
 
-        cycleArray.push(Cycle(0, prevStart, prevFinish, false));
+        console.log("cycleCount", cycleCount);
 
-        for (uint8 i = 1; cycleCount > i; i++) {
+        for (uint8 i = 0; cycleCount > i; i++) {
             uint256 start = prevFinish;
             uint256 finish = start + frequency;
             cycleArray.push(Cycle(i, start, finish, false));
@@ -98,69 +101,75 @@ contract Techo is Ownable {
         }
     }
 
+    function getCurrentTime() public view returns (uint256) {
+        if (mockTime == 0) {
+            return block.timestamp;
+        } else {
+            return mockTime;
+        }
+    }
+
     function getOwnerFeeAmount() public view returns (uint256) {
         return (contractAmount / 100) * ownerFee;
     }
 
     function approve(uint256 amount) public returns (bool) {
-        return dai.approve(address(this), amount);
+        return erc20.approve(address(this), amount);
     }
 
     function allowance() public view returns (uint256) {
-        return dai.allowance(tenant, address(this));
+        return erc20.allowance(tenant, address(this));
     }
 
     function activate(uint256 amount) external payable _tenantOnly {
-        require(amount == contractAmount, activationFailed);
+        uint256 fee = getOwnerFeeAmount();
+        require(amount == (contractAmount + fee), activationFailed);
         require(contractStatus == ContractStatus.NOTACTIVE, alreadyActive);
 
-        bool success = dai.transferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
+        bool success = erc20.transferFrom(msg.sender, address(this), amount);
         require(success, activationFailed);
         contractStatus = ContractStatus.ACTIVE;
-        activationTime = block.timestamp;
-        finalizationTime = block.timestamp + contractDuration;
-        uint256 fee = getOwnerFeeAmount();
-        dai.transfer(owner(), fee);
+        activationTime = getCurrentTime();
+        finalizationTime = getCurrentTime() + contractDuration;
+        erc20.transfer(owner(), fee);
         emit Activated(tenant, landlord, amount);
     }
 
-    function checkDaiBalance() public view returns (uint256) {
-        return dai.balanceOf(address(this));
+    function checkerc20Balance() public view returns (uint256) {
+        return erc20.balanceOf(address(this));
     }
 
     function checkRemainingDuration() public view returns (uint256) {
-        return finalizationTime - (activationTime + block.timestamp);
+        return finalizationTime - (activationTime + getCurrentTime());
     }
 
-    function collectRent(uint8 cycleIndex) public _landlordOnly {
-        require(cycleMapping[cycleIndex].paid == false, collectedRent);
+    function collectRent() public _landlordOnly {
+        require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
+        require(cycleMapping[currentCycle].paid == false, collectedRent);
         require(
-            cycleMapping[cycleIndex].start < block.timestamp &&
-                cycleMapping[cycleIndex].finish < block.timestamp,
-            "Cannot collect from a cycle which is not the current one"
+            cycleMapping[currentCycle].start < block.timestamp &&
+                cycleMapping[currentCycle].finish < block.timestamp,
+            notCurrentCycle
         );
 
-        cycleMapping[cycleIndex].paid = true;
+        cycleMapping[currentCycle].paid = true;
+        currentCycle = currentCycle + 1;
 
-        dai.transfer(landlord, amountToPayByFrequency);
+        erc20.transfer(landlord, amountToPayByFrequency);
         emit RentCollected(amountToPayByFrequency);
     }
 
     function cancelContract() public onlyOwner {
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         contractStatus = ContractStatus.CANCELLED;
-        uint256 balance = checkDaiBalance();
-        dai.transfer(tenant, balance);
+        uint256 balance = checkerc20Balance();
+        erc20.transfer(tenant, balance);
         emit Cancelled();
     }
 
     function extract() public onlyOwner {
-        uint256 balance = checkDaiBalance();
-        dai.transferFrom(address(this), owner(), balance);
+        uint256 balance = checkerc20Balance();
+        erc20.transferFrom(address(this), owner(), balance);
     }
 
     modifier _tenantOnly() {
