@@ -21,7 +21,7 @@ contract Techo is Ownable {
     ContractStatus public contractStatus;
     address public landlord;
     address public tenant;
-    uint256 public mockTime = 0;
+
     uint8 public currentCycle = 0;
     uint8 public cycleCount = 0;
 
@@ -36,7 +36,12 @@ contract Techo is Ownable {
     string onlyLandlord = "only landlord can call this function";
     string notCurrentCycle =
         "Cannot collect from a cycle which is not the current one";
+    string startTimeGreater =
+        "current cycle start time is greater than current time";
+    string finishTimeLower =
+        "current cycle finish time is lower than current time";
 
+    uint256 public time = 0;
     uint256 public contractAmount;
     uint256 public activationTime;
     uint256 public finalizationTime;
@@ -45,7 +50,6 @@ contract Techo is Ownable {
     uint256 public frequency;
     uint256 public amountToPayByFrequency;
     mapping(uint8 => Cycle) public cycleMapping;
-    Cycle[] cycleArray;
 
     event Activated(
         address indexed _tenant,
@@ -86,26 +90,19 @@ contract Techo is Ownable {
             (contractDuration / frequency);
 
         cycleCount = uint8(contractDuration / frequency);
-        uint256 prevStart = block.timestamp;
-        uint256 prevFinish = block.timestamp + frequency;
+        uint256 prevStart = getCurrentTime();
+        uint256 prevFinish = getCurrentTime() + frequency;
 
         console.log("cycleCount", cycleCount);
 
-        for (uint8 i = 0; cycleCount > i; i++) {
-            uint256 start = prevFinish;
-            uint256 finish = start + frequency;
-            cycleArray.push(Cycle(i, start, finish, false));
+        cycleMapping[0] = Cycle(0, prevStart, prevFinish, false);
+
+        for (uint8 i = 1; cycleCount > i; i++) {
+            uint256 start = prevStart + frequency;
+            uint256 finish = prevFinish + frequency;
             cycleMapping[i] = Cycle(i, start, finish, false);
             prevStart = start;
             prevFinish = finish;
-        }
-    }
-
-    function getCurrentTime() public view returns (uint256) {
-        if (mockTime == 0) {
-            return block.timestamp;
-        } else {
-            return mockTime;
         }
     }
 
@@ -113,15 +110,11 @@ contract Techo is Ownable {
         return (contractAmount / 100) * ownerFee;
     }
 
-    function approve(uint256 amount) public returns (bool) {
-        return erc20.approve(address(this), amount);
-    }
-
     function allowance() public view returns (uint256) {
         return erc20.allowance(tenant, address(this));
     }
 
-    function activate(uint256 amount) external payable _tenantOnly {
+    function activate(uint256 amount) external _tenantOnly {
         uint256 fee = getOwnerFeeAmount();
         require(amount == (contractAmount + fee), activationFailed);
         require(contractStatus == ContractStatus.NOTACTIVE, alreadyActive);
@@ -135,21 +128,21 @@ contract Techo is Ownable {
         emit Activated(tenant, landlord, amount);
     }
 
-    function checkerc20Balance() public view returns (uint256) {
+    function checkBalance() public view returns (uint256) {
         return erc20.balanceOf(address(this));
-    }
-
-    function checkRemainingDuration() public view returns (uint256) {
-        return finalizationTime - (activationTime + getCurrentTime());
     }
 
     function collectRent() public _landlordOnly {
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         require(cycleMapping[currentCycle].paid == false, collectedRent);
+        uint256 currentTime = getCurrentTime();
         require(
-            cycleMapping[currentCycle].start < block.timestamp &&
-                cycleMapping[currentCycle].finish < block.timestamp,
-            notCurrentCycle
+            cycleMapping[currentCycle].start < currentTime,
+            startTimeGreater
+        );
+        require(
+            cycleMapping[currentCycle].finish > currentTime,
+            finishTimeLower
         );
 
         cycleMapping[currentCycle].paid = true;
@@ -162,14 +155,28 @@ contract Techo is Ownable {
     function cancelContract() public onlyOwner {
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         contractStatus = ContractStatus.CANCELLED;
-        uint256 balance = checkerc20Balance();
+        uint256 balance = checkBalance();
         erc20.transfer(tenant, balance);
         emit Cancelled();
     }
 
     function extract() public onlyOwner {
-        uint256 balance = checkerc20Balance();
+        uint256 balance = checkBalance();
         erc20.transferFrom(address(this), owner(), balance);
+    }
+
+    //only for testing purposes, remove for prod
+    function getCurrentTime() public view returns (uint256) {
+        if (time == 0) {
+            return block.timestamp;
+        } else {
+            return time;
+        }
+    }
+
+    //only for testing purposes, remove for prod
+    function setCurrentTime(uint256 val) public {
+        time = val;
     }
 
     modifier _tenantOnly() {
