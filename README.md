@@ -32,4 +32,4 @@ Tenemos un propietario, un inquilino y una inmobiliaria.
 
 **Si quieres ver el Código de este smart contract junto con los unit tests lo puedes encontrar en my [Github Profile](https://github.com/javieracrich/CryptoTecho)**
 
-#My name is JAVIER ACRICH and I work at [Santex](https://santexgroup.com/)
+# My name is JAVIER ACRICH and I work at [Santex](https://santexgroup.com/)
