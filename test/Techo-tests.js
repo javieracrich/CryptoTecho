@@ -295,7 +295,7 @@ describe("Techo", async () => {
   });
 
 
-  it("Landlord collects 12 rents in a 12 month contract - happy path ", async function () {
+  it("Landlord collects rent monthly in a 12 month contract - happy path ", async function () {
 
     var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
 
@@ -376,12 +376,83 @@ describe("Techo", async () => {
 
   });
 
+  it("Landlord collects rent weekly in a 1 month contract - happy path ", async function () {
+
+    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 2, owner);
+
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    var activateAmount = utils.parseEther("5100");
+    await tenantDai.approve(techo.address, activateAmount);
+    await tenantTecho.activate(activateAmount);
+
+    await IncreaseTime(techo, Constants.Day);
+
+    const landlordTecho = techo.connect(landlord);
+
+    let prevLandlordBalance = await dai.balanceOf(landlord.address);
+    console.log("landlord balance before", utils.formatEther(prevLandlordBalance));
+
+    for (let cycleIndex = 0; cycleIndex < 4; cycleIndex++) {
+
+      console.log("========================", "cycle", cycleIndex, "========================");
+      await landlordTecho.collectRent();
+
+      await IncreaseTime(landlordTecho, Constants.Week);
+
+      let currentLandlordBalance = await dai.balanceOf(landlord.address);
+      expect(prevLandlordBalance < currentLandlordBalance);
+      prevLandlordBalance = currentLandlordBalance;
+      const mapping = await techo.cycleMapping(cycleIndex);
+      console.log("mapping", mapping.index, mapping.paid, mapping.start.toString(), mapping.finish.toString(), mapping.finish - mapping.start);
+      expect(mapping.paid).to.be.true;
+    }
+
+    prevLandlordBalance = await dai.balanceOf(landlord.address);
+    console.log("landlord balance after", utils.formatEther(prevLandlordBalance));
+
+  });
+  it("Landlord collects rent daily in a 1 month contract - happy path ", async function () {
+
+    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Day, 2, owner);
+
+    var tenantTecho = techo.connect(tenant);
+    var tenantDai = dai.connect(tenant);
+    var activateAmount = utils.parseEther("5100");
+    await tenantDai.approve(techo.address, activateAmount);
+    await tenantTecho.activate(activateAmount);
+
+   // await IncreaseTime(techo, Constants.Day);
+
+    const landlordTecho = techo.connect(landlord);
+
+    let prevLandlordBalance = await dai.balanceOf(landlord.address);
+    console.log("landlord balance before", utils.formatEther(prevLandlordBalance));
+
+    for (let cycleIndex = 0; cycleIndex < 30; cycleIndex++) {
+
+      console.log("========================", "cycle", cycleIndex, "========================");
+      await landlordTecho.collectRent();
+
+      await IncreaseTime(landlordTecho, Constants.Day);
+
+      let currentLandlordBalance = await dai.balanceOf(landlord.address);
+      expect(prevLandlordBalance < currentLandlordBalance);
+      prevLandlordBalance = currentLandlordBalance;
+      const mapping = await techo.cycleMapping(cycleIndex);
+      console.log("mapping", mapping.index, mapping.paid, mapping.start.toString(), mapping.finish.toString(), mapping.finish - mapping.start);
+      expect(mapping.paid).to.be.true;
+    }
+
+    prevLandlordBalance = await dai.balanceOf(landlord.address);
+    console.log("landlord balance after", utils.formatEther(prevLandlordBalance));
+
+  });
 
   async function IncreaseTime(contract, seconds) {
     let time = await contract.getCurrentTime();
     time = time.add(seconds);
     await contract.setCurrentTime(time);
   }
-
 
 });
