@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-ganache": "^2.0.1",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@types/chai": "^4.2.21",
     "@types/mocha": "^9.0.0",

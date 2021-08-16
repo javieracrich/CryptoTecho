@@ -1,10 +1,10 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { Constants, ContractStatus } = require('./Constants');
-const { BigNumber, utils } = require('ethers');
-const { SignerWithAddress } = require("@nomiclabs/hardhat-ethers/signers");
+const { utils } = require('ethers');
 
-async function getContracts(
+
+async function deployContracts(
   duration,
   amount,
   frequency,
@@ -38,13 +38,13 @@ describe("Techo", async () => {
   });
 
   it("both owner and tenant have correct token balances each", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 1, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 1, owner);
     await expect(await dai.balanceOf(tenant.address)).to.equal(utils.parseEther("6000"));
     await expect(await dai.balanceOf(owner.address)).to.equal(utils.parseEther("4000"));
   });
 
   it("Contract parameters are set", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 1, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 1, owner);
 
     await expect(techo.daiInstance).to.be.not.null;
     await expect(await techo.contractStatus()).to.equal(ContractStatus.NOTACTIVE);
@@ -56,76 +56,76 @@ describe("Techo", async () => {
   });
 
   it("tenant is correct", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 5, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 5, owner);
     expect(await techo.tenant()).to.equal(tenant.address);
   });
 
   it("landlord is correct", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 5, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 5, owner);
     expect(await techo.landlord()).to.equal(landlord.address);
   });
 
   it("Contract duration minimum required is 1 week", async () => {
-    await expect(getContracts(Constants.Week - 1, amount, Constants.Month, 1, owner)).to.be.revertedWith(
+    await expect(deployContracts(Constants.Week - 1, amount, Constants.Month, 1, owner)).to.be.revertedWith(
       "Required minimum contract duration is 1 week"
     );
   });
 
   it("Contract status is NOTACTIVE after deployed", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 5, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 5, owner);
     expect(await techo.contractStatus()).to.equal(ContractStatus.NOTACTIVE);
   });
 
   it("AmountToPayByFrequency is correct - YEAR CONTRACT", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 1, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 1, owner);
     const amountToPay = await techo.amountToPayByFrequency();
     var formatted = utils.formatEther(amountToPay);
     expect(formatted).to.equal("416.666666666666666666");
   });
 
   it("AmountToPayByFrequency is correct - MONTH CONTRACT", async () => {
-    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 1, owner);
+    var [techo, dai] = await deployContracts(Constants.Month, amount, Constants.Week, 1, owner);
     const amountToPay = await techo.amountToPayByFrequency();
     var formatted = utils.formatEther(amountToPay);
     expect(formatted).to.equal("1250.0");
   });
 
   it("Calculate 1% commission", async () => {
-    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 1, owner);
+    var [techo, dai] = await deployContracts(Constants.Month, amount, Constants.Week, 1, owner);
     const feeAmount = await techo.getOwnerFeeAmount();
     var formattedCommission = utils.formatEther(feeAmount);
     expect(formattedCommission).to.equal("50.0");
   });
 
   it("Calculate 5% commission", async () => {
-    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 5, owner);
+    var [techo, dai] = await deployContracts(Constants.Month, amount, Constants.Week, 5, owner);
     const feeAmount = await techo.getOwnerFeeAmount();
     var formattedCommission = utils.formatEther(feeAmount);
     expect(formattedCommission).to.be.equal("250.0");
   });
 
   it("Calculate 10% commission ", async () => {
-    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 10, owner);
+    var [techo, dai] = await deployContracts(Constants.Month, amount, Constants.Week, 10, owner);
     const feeAmount = await techo.getOwnerFeeAmount();
     var formattedCommission = utils.formatEther(feeAmount);
     expect(formattedCommission).to.equal("500.0");
   });
 
   it("Calculate 50% commission ", async () => {
-    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 50, owner);
+    var [techo, dai] = await deployContracts(Constants.Month, amount, Constants.Week, 50, owner);
     const feeAmount = await techo.getOwnerFeeAmount();
     var formattedCommission = utils.formatEther(feeAmount);
     expect(formattedCommission).to.equal("2500.0");
   });
 
   it("Contract duration is larger than frequency should fail", async () => {
-    expect(getContracts(Constants.Week, amount, Constants.Month, 5, owner)).to.be.revertedWith(
+    expect(deployContracts(Constants.Week, amount, Constants.Month, 5, owner)).to.be.revertedWith(
       "Payment frequency should be less than the contract duration"
     );
   });
 
   it("Contract is activated - happy path", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -144,7 +144,7 @@ describe("Techo", async () => {
   });
 
   it("landlord tries to activate contract - should fail", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var landlordTecho = techo.connect(landlord);
     var landlordDai = dai.connect(landlord);
     await landlordDai.approve(techo.address, amount);
@@ -152,13 +152,13 @@ describe("Techo", async () => {
   });
 
   it("owner tries to activate contract - should fail", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     await dai.approve(techo.address, amount);
     await expect(techo.activate(amount)).to.be.revertedWith("only tenant can call this function");
   });
 
   it("Transferring less than required to activate should fail", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     await tenantDai.approve(techo.address, amount);
@@ -166,7 +166,7 @@ describe("Techo", async () => {
   });
 
   it("Transferring more than required to activate should fail", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     await tenantDai.approve(techo.address, amount);
@@ -174,7 +174,7 @@ describe("Techo", async () => {
   });
 
   it("Activating already activated contract should fail", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -184,7 +184,7 @@ describe("Techo", async () => {
   });
 
   it("Cancel contract-happy path", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -195,7 +195,7 @@ describe("Techo", async () => {
   });
 
   it("Cancel not active contract should fail ", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -206,7 +206,7 @@ describe("Techo", async () => {
   });
 
   it("Landlord tries to collect rent twice in current cycle should fail ", async function () {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -225,7 +225,7 @@ describe("Techo", async () => {
   });
 
   it("Landlord tries to collect rent from not active contract should fail ", async function () {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
     await tenantDai.approve(techo.address, activateAmount);
@@ -235,7 +235,7 @@ describe("Techo", async () => {
   });
 
   it("Landlord tries to collect rent from cancelled contract should fail ", async function () {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -254,7 +254,7 @@ describe("Techo", async () => {
 
 
   it("Landlord collects first rent - happy path ", async () => {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -277,7 +277,7 @@ describe("Techo", async () => {
   });
 
   it("cycles are correctly built ", async function () {
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     var activateAmount = utils.parseEther("5100");
@@ -297,7 +297,7 @@ describe("Techo", async () => {
 
   it("Landlord collects rent monthly in a 12 month contract - happy path ", async function () {
 
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
 
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
@@ -334,7 +334,7 @@ describe("Techo", async () => {
 
   it("Landlord collects 7 rents in a 12 month contract, then owner cancels contract - happy path ", async function () {
 
-    var [techo, dai] = await getContracts(Constants.Year, amount, Constants.Month, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
 
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
@@ -378,7 +378,7 @@ describe("Techo", async () => {
 
   it("Landlord collects rent weekly in a 1 month contract - happy path ", async function () {
 
-    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Week, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Month, amount, Constants.Week, 2, owner);
 
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
@@ -414,7 +414,7 @@ describe("Techo", async () => {
   });
   it("Landlord collects rent daily in a 1 month contract - happy path ", async function () {
 
-    var [techo, dai] = await getContracts(Constants.Month, amount, Constants.Day, 2, owner);
+    var [techo, dai] = await deployContracts(Constants.Month, amount, Constants.Day, 2, owner);
 
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
@@ -422,7 +422,7 @@ describe("Techo", async () => {
     await tenantDai.approve(techo.address, activateAmount);
     await tenantTecho.activate(activateAmount);
 
-   // await IncreaseTime(techo, Constants.Day);
+    // await IncreaseTime(techo, Constants.Day);
 
     const landlordTecho = techo.connect(landlord);
 

@@ -119,7 +119,7 @@ contract Techo is Ownable {
         require(amount == (contractAmount + fee), activationFailed);
         require(contractStatus == ContractStatus.NOTACTIVE, alreadyActive);
 
-        bool success = erc20.transferFrom(msg.sender, address(this), amount);
+        bool success = erc20.transferFrom(_msgSender(), address(this), amount);
         require(success, activationFailed);
         contractStatus = ContractStatus.ACTIVE;
         activationTime = getCurrentTime();
@@ -180,12 +180,12 @@ contract Techo is Ownable {
     }
 
     modifier _tenantOnly() {
-        require(msg.sender == tenant, onlyTenant);
+        require(_msgSender() == tenant, onlyTenant);
         _;
     }
 
     modifier _landlordOnly() {
-        require(msg.sender == landlord, onlyLandlord);
+        require(_msgSender() == landlord, onlyLandlord);
         _;
     }
 }
