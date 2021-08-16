@@ -7,13 +7,6 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Enums.sol";
 
-struct Cycle {
-    uint8 index;
-    uint256 start;
-    uint256 finish;
-    bool paid;
-}
-
 contract Techo is Ownable {
     using Strings for uint256;
 
@@ -110,10 +103,6 @@ contract Techo is Ownable {
         return (contractAmount / 100) * ownerFee;
     }
 
-    function allowance() public view returns (uint256) {
-        return erc20.allowance(tenant, address(this));
-    }
-
     function activate(uint256 amount) external _tenantOnly {
         uint256 fee = getOwnerFeeAmount();
         require(amount == (contractAmount + fee), activationFailed);
@@ -132,7 +121,7 @@ contract Techo is Ownable {
         return erc20.balanceOf(address(this));
     }
 
-    function collectRent() public _landlordOnly {
+    function collectRent() external _landlordOnly {
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         require(cycleMapping[currentCycle].paid == false, collectedRent);
         uint256 currentTime = getCurrentTime();
@@ -152,7 +141,7 @@ contract Techo is Ownable {
         emit RentCollected(amountToPayByFrequency);
     }
 
-    function cancelContract() public onlyOwner {
+    function cancelContract() external onlyOwner {
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         contractStatus = ContractStatus.CANCELLED;
         uint256 balance = checkBalance();
@@ -160,7 +149,7 @@ contract Techo is Ownable {
         emit Cancelled();
     }
 
-    function extract() public onlyOwner {
+    function extract() external onlyOwner {
         uint256 balance = checkBalance();
         erc20.transferFrom(address(this), owner(), balance);
     }
@@ -175,7 +164,7 @@ contract Techo is Ownable {
     }
 
     //only for testing purposes, remove for prod
-    function setCurrentTime(uint256 val) public {
+    function setCurrentTime(uint256 val) external {
         time = val;
     }
 

@@ -12,3 +12,10 @@ enum CommissionType {
     PERCENTAGE
 }
 
+struct Cycle {
+    uint8 index;
+    uint256 start;
+    uint256 finish;
+    bool paid;
+}
+
