@@ -105,14 +105,19 @@ contract Techo is Ownable {
 
     function activate(uint256 amount) external _tenantOnly {
         uint256 fee = getOwnerFeeAmount();
+        //checks
         require(amount == (contractAmount + fee), activationFailed);
         require(contractStatus == ContractStatus.NOTACTIVE, alreadyActive);
 
         bool success = erc20.transferFrom(_msgSender(), address(this), amount);
         require(success, activationFailed);
+
+        //effects
         contractStatus = ContractStatus.ACTIVE;
         activationTime = getCurrentTime();
         finalizationTime = getCurrentTime() + contractDuration;
+
+        //interaction
         erc20.transfer(owner(), fee);
         emit Activated(tenant, landlord, amount);
     }
@@ -122,6 +127,7 @@ contract Techo is Ownable {
     }
 
     function collectRent() external _landlordOnly {
+        //checks
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         require(cycleMapping[currentCycle].paid == false, collectedRent);
         uint256 currentTime = getCurrentTime();
@@ -134,16 +140,23 @@ contract Techo is Ownable {
             finishTimeLower
         );
 
+        //effects
         cycleMapping[currentCycle].paid = true;
         currentCycle = currentCycle + 1;
 
+        //interaction
         erc20.transfer(landlord, amountToPayByFrequency);
         emit RentCollected(amountToPayByFrequency);
     }
 
     function cancelContract() external onlyOwner {
+        //checks
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
+
+        //effects
         contractStatus = ContractStatus.CANCELLED;
+
+        //interaction
         uint256 balance = checkBalance();
         erc20.transfer(tenant, balance);
         emit Cancelled();
