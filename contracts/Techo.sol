@@ -33,6 +33,7 @@ contract Techo is Ownable {
         "current cycle start time is greater than current time";
     string finishTimeLower =
         "current cycle finish time is lower than current time";
+    string transferFailed = "transfer failed";
 
     uint256 public time = 0;
     uint256 public contractAmount;
@@ -118,7 +119,8 @@ contract Techo is Ownable {
         finalizationTime = getCurrentTime() + contractDuration;
 
         //interaction
-        erc20.transfer(owner(), fee);
+        success = erc20.transfer(owner(), fee);
+        require(success, transferFailed);
         emit Activated(tenant, landlord, amount);
     }
 
@@ -145,7 +147,8 @@ contract Techo is Ownable {
         currentCycle = currentCycle + 1;
 
         //interaction
-        erc20.transfer(landlord, amountToPayByFrequency);
+        bool success = erc20.transfer(landlord, amountToPayByFrequency);
+        require(success, transferFailed);
         emit RentCollected(amountToPayByFrequency);
     }
 
@@ -158,13 +161,15 @@ contract Techo is Ownable {
 
         //interaction
         uint256 balance = checkBalance();
-        erc20.transfer(tenant, balance);
+        bool success = erc20.transfer(tenant, balance);
+        require(success, transferFailed);
         emit Cancelled();
     }
 
     function extract() external onlyOwner {
         uint256 balance = checkBalance();
-        erc20.transferFrom(address(this), owner(), balance);
+        bool success = erc20.transfer(owner(), balance);
+        require(success, transferFailed);
     }
 
     //only for testing purposes, remove for prod
