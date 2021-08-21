@@ -36,6 +36,7 @@ contract Techo is Ownable, Pausable {
         "current cycle finish time is lower than current time";
     string transferFailed = "transfer failed";
     string EOAOnly = "addres cannot be a contract";
+    string invalidAddress = "invalid address";
 
     uint256 public time = 0;
     uint256 public contractAmount;
@@ -72,9 +73,9 @@ contract Techo is Ownable, Pausable {
             contractDurationLargerThanFrequency
         );
 
-        checkIsContract(_tenant);
+        checkValidAddress(_tenant);
 
-        checkIsContract(_landlord);
+        checkValidAddress(_landlord);
 
         erc20 = IERC20(_erc20address);
         tenant = _tenant;
@@ -187,9 +188,10 @@ contract Techo is Ownable, Pausable {
         }
     }
 
-    function checkIsContract(address _a) private view {
+    function checkValidAddress(address _a) private view {
         uint256 len;
-        require(_a != address(0));
+        require(_a != address(0), invalidAddress);
+        require(_a != address(this), invalidAddress);
         assembly {
             len := extcodesize(_a)
         }
