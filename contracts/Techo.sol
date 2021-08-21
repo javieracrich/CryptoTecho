@@ -34,6 +34,7 @@ contract Techo is Ownable {
     string finishTimeLower =
         "current cycle finish time is lower than current time";
     string transferFailed = "transfer failed";
+    string EOAOnly = "addres cannot be a contract";
 
     uint256 public time = 0;
     uint256 public contractAmount;
@@ -69,6 +70,10 @@ contract Techo is Ownable {
             _contractDuration > _frequency,
             contractDurationLargerThanFrequency
         );
+
+        checkIsContract(_tenant);
+
+        checkIsContract(_landlord);
 
         erc20 = IERC20(_erc20address);
         tenant = _tenant;
@@ -179,6 +184,14 @@ contract Techo is Ownable {
         } else {
             return time;
         }
+    }
+
+    function checkIsContract(address _a) private view {
+        uint256 len;
+        assembly {
+            len := extcodesize(_a)
+        }
+        require(len == 0, EOAOnly);
     }
 
     //only for testing purposes, remove for prod
