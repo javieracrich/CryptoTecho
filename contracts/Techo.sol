@@ -5,9 +5,10 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./Enums.sol";
 
-contract Techo is Ownable {
+contract Techo is Ownable, Pausable {
     using Strings for uint256;
 
     IERC20 erc20;
@@ -109,7 +110,7 @@ contract Techo is Ownable {
         return (contractAmount / 100) * ownerFee;
     }
 
-    function activate(uint256 amount) external _tenantOnly {
+    function activate(uint256 amount) external _tenantOnly whenNotPaused {
         uint256 fee = getOwnerFeeAmount();
         //checks
         require(amount == (contractAmount + fee), activationFailed);
@@ -133,7 +134,7 @@ contract Techo is Ownable {
         return erc20.balanceOf(address(this));
     }
 
-    function collectRent() external _landlordOnly {
+    function collectRent() external _landlordOnly whenNotPaused {
         //checks
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
         require(cycleMapping[currentCycle].paid == false, collectedRent);
@@ -157,7 +158,7 @@ contract Techo is Ownable {
         emit RentCollected(amountToPayByFrequency);
     }
 
-    function cancelContract() external onlyOwner {
+    function cancelContract() external onlyOwner whenNotPaused {
         //checks
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
 
@@ -171,7 +172,7 @@ contract Techo is Ownable {
         emit Cancelled();
     }
 
-    function extract() external onlyOwner {
+    function extract() external onlyOwner whenNotPaused {
         uint256 balance = checkBalance();
         bool success = erc20.transfer(owner(), balance);
         require(success, transferFailed);
@@ -188,6 +189,7 @@ contract Techo is Ownable {
 
     function checkIsContract(address _a) private view {
         uint256 len;
+        require(_a != address(0));
         assembly {
             len := extcodesize(_a)
         }
@@ -197,6 +199,14 @@ contract Techo is Ownable {
     //only for testing purposes, remove for prod
     function setCurrentTime(uint256 val) external {
         time = val;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     modifier _tenantOnly() {
