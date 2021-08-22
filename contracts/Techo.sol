@@ -13,39 +13,41 @@ contract Techo is Ownable, Pausable {
 
     IERC20 erc20;
     ContractStatus public contractStatus;
-    address public landlord;
-    address public tenant;
+    address public immutable landlord;
+    address public immutable tenant;
 
     uint8 public currentCycle = 0;
     uint8 public cycleCount = 0;
 
-    string activationFailed = "contract activation failed";
-    string alreadyActive = "contract is already active";
-    string minContractDuration = "Required minimum contract duration is 1 week";
-    string contractDurationLargerThanFrequency =
+    string constant activationFailed = "contract activation failed";
+    string constant alreadyActive = "contract is already active";
+    string constant minContractDuration =
+        "Required minimum contract duration is 1 week";
+    string constant contractDurationLargerThanFrequency =
         "Payment frequency should be less than the contract duration";
-    string collectedRent = "you have already collected rent this current cycle";
-    string contractNotActive = "contract is not active";
-    string onlyTenant = "only tenant can call this function";
-    string onlyLandlord = "only landlord can call this function";
-    string notCurrentCycle =
+    string constant collectedRent =
+        "you have already collected rent this current cycle";
+    string constant contractNotActive = "contract is not active";
+    string constant onlyTenant = "only tenant can call this function";
+    string constant onlyLandlord = "only landlord can call this function";
+    string constant notCurrentCycle =
         "Cannot collect from a cycle which is not the current one";
-    string startTimeGreater =
+    string constant startTimeGreater =
         "current cycle start time is greater than current time";
-    string finishTimeLower =
+    string constant finishTimeLower =
         "current cycle finish time is lower than current time";
-    string transferFailed = "transfer failed";
-    string EOAOnly = "addres cannot be a contract";
-    string invalidAddress = "invalid address";
+    string constant transferFailed = "transfer failed";
+    string constant EOAOnly = "addres cannot be a contract";
+    string constant invalidAddress = "invalid address";
 
     uint256 public time = 0;
     uint256 public contractAmount;
     uint256 public activationTime;
     uint256 public finalizationTime;
     uint256 public contractDuration;
-    uint256 public ownerFee;
     uint256 public frequency;
-    uint256 public amountToPayByFrequency;
+    uint256 public immutable ownerFee;
+    uint256 public immutable amountToPayByFrequency;
     mapping(uint8 => Cycle) public cycleMapping;
 
     event Activated(
@@ -193,6 +195,7 @@ contract Techo is Ownable, Pausable {
         require(_a != address(0), invalidAddress);
         require(_a != address(this), invalidAddress);
         assembly {
+            //yul
             len := extcodesize(_a)
         }
         require(len == 0, EOAOnly);
@@ -209,6 +212,10 @@ contract Techo is Ownable, Pausable {
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    function destroy() public onlyOwner {
+        selfdestruct(payable(owner()));
     }
 
     modifier _tenantOnly() {
