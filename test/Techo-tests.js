@@ -67,7 +67,7 @@ describe("Techo", async () => {
 
   it("Contract duration minimum required is 1 week", async () => {
     await expect(deployContracts(Constants.Week - 1, amount, Constants.Month, 1, owner)).to.be.revertedWith(
-      "Required minimum contract duration is 1 week"
+      "MinContractDuration(604800)"
     );
   });
 
@@ -120,7 +120,7 @@ describe("Techo", async () => {
 
   it("Contract duration is larger than frequency should fail", async () => {
     expect(deployContracts(Constants.Week, amount, Constants.Month, 5, owner)).to.be.revertedWith(
-      "Payment frequency should be less than the contract duration"
+      "ContractDurationLargerThanFrequency()"
     );
   });
 
@@ -148,13 +148,13 @@ describe("Techo", async () => {
     var landlordTecho = techo.connect(landlord);
     var landlordDai = dai.connect(landlord);
     await landlordDai.approve(techo.address, amount);
-    await expect(landlordTecho.activate(amount)).to.be.revertedWith("only tenant can call this function");
+    await expect(landlordTecho.activate(amount)).to.be.revertedWith("OnlyTenant()");
   });
 
   it("owner tries to activate contract - should fail", async () => {
     var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
     await dai.approve(techo.address, amount);
-    await expect(techo.activate(amount)).to.be.revertedWith("only tenant can call this function");
+    await expect(techo.activate(amount)).to.be.revertedWith("OnlyTenant()");
   });
 
   it("Transferring less than required to activate should fail", async () => {
@@ -162,7 +162,7 @@ describe("Techo", async () => {
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     await tenantDai.approve(techo.address, amount);
-    await expect(tenantTecho.activate(utils.parseEther("4000"))).to.be.revertedWith("contract activation failed");
+    await expect(tenantTecho.activate(utils.parseEther("4000"))).to.be.revertedWith("ActivationFailed(5100000000000000000000)");
   });
 
   it("Transferring more than required to activate should fail", async () => {
@@ -170,7 +170,7 @@ describe("Techo", async () => {
     var tenantTecho = techo.connect(tenant);
     var tenantDai = dai.connect(tenant);
     await tenantDai.approve(techo.address, amount);
-    await expect(tenantTecho.activate(utils.parseEther("6000"))).to.be.revertedWith("contract activation failed");
+    await expect(tenantTecho.activate(utils.parseEther("6000"))).to.be.revertedWith("ActivationFailed(5100000000000000000000)");
   });
 
   it("Activating already activated contract should fail", async () => {
@@ -180,7 +180,7 @@ describe("Techo", async () => {
     var activateAmount = utils.parseEther("5100");
     await tenantDai.approve(techo.address, activateAmount);
     await tenantTecho.activate(activateAmount);
-    await expect(tenantTecho.activate(activateAmount)).to.be.revertedWith("contract is already active");
+    await expect(tenantTecho.activate(activateAmount)).to.be.revertedWith("AlreadyActive()");
   });
 
   it("Cancel contract-happy path", async () => {
@@ -202,7 +202,7 @@ describe("Techo", async () => {
     await tenantDai.approve(techo.address, activateAmount);
     await tenantTecho.activate(activateAmount);
     await techo.cancelContract();
-    await expect(techo.cancelContract()).to.be.revertedWith("contract is not active");
+    await expect(techo.cancelContract()).to.be.revertedWith("ContractNotActive()");
   });
 
   it("Landlord tries to collect rent twice in current cycle should fail ", async function () {
@@ -219,7 +219,7 @@ describe("Techo", async () => {
       .to.emit(techo, "RentCollected")
       .withArgs(await techo.amountToPayByFrequency());
 
-    await expect(landlordTecho.collectRent()).to.be.revertedWith("current cycle start time is greater than current time");
+    await expect(landlordTecho.collectRent()).to.be.revertedWith("CurrentCycleAlreadyCollected()");
   });
 
   it("Landlord tries to collect rent from not active contract should fail ", async function () {
@@ -228,7 +228,7 @@ describe("Techo", async () => {
     var activateAmount = utils.parseEther("5100");
     await tenantDai.approve(techo.address, activateAmount);
     const landlordTecho = techo.connect(landlord);
-    expect(landlordTecho.collectRent()).to.be.revertedWith("contract is not active");
+    expect(landlordTecho.collectRent()).to.be.revertedWith("ContractNotActive()");
   });
 
   it("Landlord tries to collect rent from cancelled contract should fail ", async function () {
@@ -240,9 +240,8 @@ describe("Techo", async () => {
     await tenantTecho.activate(activateAmount);
     const landlordTecho = techo.connect(landlord);
     await techo.cancelContract();
-    expect(landlordTecho.collectRent()).to.be.revertedWith("contract is not active");
+    expect(landlordTecho.collectRent()).to.be.revertedWith("ContractNotActive()");
   });
-
 
   it("Landlord collects first rent - happy path ", async () => {
     var [techo, dai] = await deployContracts(Constants.Year, amount, Constants.Month, 2, owner);
