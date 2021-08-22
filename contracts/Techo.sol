@@ -68,7 +68,7 @@ contract Techo is Ownable, Pausable {
         uint256 _frequency,
         uint8 _ownerFee
     ) {
-        require(_contractDuration >= 604800, minContractDuration);
+        require(_contractDuration >= oneWeek(), minContractDuration);
 
         require(
             _contractDuration > _frequency,
@@ -107,6 +107,10 @@ contract Techo is Ownable, Pausable {
             prevStart = start;
             prevFinish = finish;
         }
+    }
+
+    function oneWeek() private pure returns (uint256) {
+        return 604800;
     }
 
     function getOwnerFeeAmount() public view returns (uint256) {
