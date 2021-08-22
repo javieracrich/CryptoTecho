@@ -212,16 +212,14 @@ describe("Techo", async () => {
     var activateAmount = utils.parseEther("5100");
     await tenantDai.approve(techo.address, activateAmount);
     await tenantTecho.activate(activateAmount);
-    const provider = new ethers.providers.JsonRpcProvider();
-    var block = await provider.getBlock("latest");
-    console.log("block", block.timestamp);
+
     const landlordTecho = techo.connect(landlord);
 
-    expect(landlordTecho.collectRent())
+    await expect(landlordTecho.collectRent())
       .to.emit(techo, "RentCollected")
       .withArgs(await techo.amountToPayByFrequency());
 
-    expect(landlordTecho.collectRent()).to.be.revertedWith("you have already collected rent this current cycle");
+    await expect(landlordTecho.collectRent()).to.be.revertedWith("current cycle start time is greater than current time");
   });
 
   it("Landlord tries to collect rent from not active contract should fail ", async function () {
@@ -230,8 +228,7 @@ describe("Techo", async () => {
     var activateAmount = utils.parseEther("5100");
     await tenantDai.approve(techo.address, activateAmount);
     const landlordTecho = techo.connect(landlord);
-    const cycleIndex = 0;
-    expect(landlordTecho.collectRent(cycleIndex)).to.be.revertedWith("contract is not active");
+    expect(landlordTecho.collectRent()).to.be.revertedWith("contract is not active");
   });
 
   it("Landlord tries to collect rent from cancelled contract should fail ", async function () {
@@ -241,15 +238,9 @@ describe("Techo", async () => {
     var activateAmount = utils.parseEther("5100");
     await tenantDai.approve(techo.address, activateAmount);
     await tenantTecho.activate(activateAmount);
-    const provider = new ethers.providers.JsonRpcProvider();
-    var block = await provider.getBlock("latest");
-    console.log("block", block.timestamp);
     const landlordTecho = techo.connect(landlord);
-    const cycleIndex = 0;
-
     await techo.cancelContract();
-
-    expect(landlordTecho.collectRent(cycleIndex)).to.be.revertedWith("contract is not active");
+    expect(landlordTecho.collectRent()).to.be.revertedWith("contract is not active");
   });
 
 

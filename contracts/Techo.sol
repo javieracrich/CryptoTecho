@@ -144,7 +144,7 @@ contract Techo is Ownable, Pausable {
     function collectRent() external _landlordOnly whenNotPaused {
         //checks
         require(contractStatus == ContractStatus.ACTIVE, contractNotActive);
-        require(cycleMapping[currentCycle].paid == false, collectedRent);
+        require(!cycleMapping[currentCycle].paid, collectedRent);
         uint256 currentTime = getCurrentTime();
         require(
             cycleMapping[currentCycle].start < currentTime,
